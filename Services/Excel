@@ -1,0 +1,75 @@
+using ClosedXML.Excel;
+using Gdoc.Robo.EnviaEmail.Models;
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Globalization;
+using System.Linq;
+using System.Text.RegularExpressions;
+
+namespace Gdoc.Robo.EnviaEmail.Services
+{
+    public class Excel
+    {
+        public List<LayoutArquivo> LerExcelProcessamento()
+        {
+            List<LayoutArquivo> listaLayoutArquivo = new List<LayoutArquivo>();
+           
+            try
+            {
+                string fileName = ConfigurationManager.AppSettings["CaminhoExcel"];
+
+                using (var excelWorkbook = new XLWorkbook(fileName))
+                {
+                    var nonEmptyDataRows = excelWorkbook.Worksheet(1).RowsUsed().Skip(1);
+
+                    foreach (var dataRow in nonEmptyDataRows)
+                    {
+                        LayoutArquivo layoutArquivo = new LayoutArquivo();
+
+                        layoutArquivo.Segmento = dataRow.Cell(2).Value.ToString();
+                        layoutArquivo.Cnpj = dataRow.Cell(4).Value.ToString();
+                        layoutArquivo.NomeCliente = dataRow.Cell(5).Value.ToString();
+                        layoutArquivo.EmailCliente = dataRow.Cell(6).Value.ToString();
+                        layoutArquivo.EmailBanco = dataRow.Cell(7).Value.ToString();
+                        layoutArquivo.NomeArquivo = dataRow.Cell(8).Value.ToString();
+                        layoutArquivo.DataEnvio =  dataRow.Cell(9).Value.ToString();
+
+                        listaLayoutArquivo.Add(layoutArquivo);
+                    }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                throw ex;
+            }
+
+            return listaLayoutArquivo;
+        }
+
+        public void InserirDataProcessamento(string email)
+        {
+            try
+            {
+                string fileName = ConfigurationManager.AppSettings["CaminhoExcel"];
+
+                using (var excelWorkbook = new XLWorkbook(fileName))
+                {
+                    var foundCells = excelWorkbook.Search(email, CompareOptions.OrdinalIgnoreCase).FirstOrDefault();
+                    var row = foundCells.Address.RowNumber;
+
+                    string celula = string.Format("I{0}", row);
+
+                    excelWorkbook.Worksheet("Robô").Cell(celula).Value = DateTime.Now;
+
+                    excelWorkbook.Save();
+
+                }
+            }
+            catch (System.Exception ex)
+            {
+                throw ex;
+            }
+        }
+    }
+}
